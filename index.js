@@ -32,6 +32,17 @@ import {
 } from "./services/maya.js";
 
 const app = express();
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "https://test-esim-app.myshopify.com");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204);
+  }
+
+  next();
+});
 console.log("BOOT MARKER: build-2026-02-15-01");
 
 // -----------------------------
