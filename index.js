@@ -1617,6 +1617,84 @@ app.get("/api/test-esims", async (req, res) => {
   }
 });
 
+app.get("/api/recharge-options", async (req, res) => {
+  try {
+    const customerId = String(req.query.customer_id || "").trim();
+    const selectedIccid = normalizeIccid(req.query.iccid);
+
+    if (!customerId || !selectedIccid) {
+      return res.status(400).json({
+        ok: false,
+        error: "Missing customer_id or iccid",
+      });
+    }
+
+    const mayaCustomerId = await getMayaCustomerIdFromShopifyCustomer(customerId);
+
+    if (!mayaCustomerId) {
+      return res.status(404).json({
+        ok: false,
+        error: "No Maya customer linked",
+      });
+    }
+
+    const mayaDetails = await getMayaCustomerDetails(mayaCustomerId);
+    const esims = Array.isArray(mayaDetails?.customer?.esims)
+      ? mayaDetails.customer.esims
+      : [];
+
+    const targetEsim = esims.find(
+      (e) => normalizeIccid(e.iccid) === selectedIccid
+    );
+
+    if (!targetEsim) {
+      return res.status(403).json({
+        ok: false,
+        error: "This eSIM does not belong to this customer",
+      });
+    }
+
+    // MVP: hardcoded recharge options.
+    // Later, make this dynamic from Shopify variants / Maya country compatibility.
+    const rechargeOptions = [
+      {
+        label: "1 GB / 7 jours",
+        variantId: 46535835353263,
+        mayaPlanId: "WVL9hE7GQiwT",
+        priceLabel: "Recharge eSIM",
+      },
+      // Add more variants here later:
+      // {
+      //   label: "5 GB / 15 jours",
+      //   variantId: 123456789,
+      //   mayaPlanId: "MAYA_PLAN_ID",
+      //   priceLabel: "Recharge eSIM"
+      // }
+    ];
+
+    return res.json({
+      ok: true,
+      shopifyCustomerId: customerId,
+      mayaCustomerId,
+      iccid: selectedIccid,
+      esim: {
+        iccid: targetEsim.iccid,
+        uid: targetEsim.uid,
+        service_status: targetEsim.service_status,
+        network_status: targetEsim.network_status,
+        plans: targetEsim.plans || [],
+      },
+      rechargeOptions,
+    });
+  } catch (error) {
+    console.error("❌ /api/recharge-options error:", error);
+    return res.status(500).json({
+      ok: false,
+      error: error.message || "Something went wrong",
+    });
+  }
+});
+
 // -----------------------------
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Listening on ${port}`));
