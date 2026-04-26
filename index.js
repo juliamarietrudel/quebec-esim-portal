@@ -960,6 +960,12 @@ function normId(x) {
   return String(x || "").trim().toLowerCase();
 }
 
+function getLineItemProperty(item, name) {
+  const props = Array.isArray(item?.properties) ? item.properties : [];
+  const found = props.find((p) => String(p?.name || "") === name);
+  return String(found?.value || "").trim();
+}
+
 function normalizeIccid(x) {
   return String(x || "").replace(/\s+/g, "").trim();
 }
@@ -1237,7 +1243,13 @@ async function handleOrderPaidWebhook(order, reqForHeaders = null) {
       // RECHARGE (TOP UP)
       // -----------------------------
       if (productType === "recharge") {
+        console.log("🧪 LINE ITEM PROPERTIES:", item.properties);
+        const selectedIccid = normalizeIccid(getLineItemProperty(item, "iccid"));
         console.log("🔄 Entering TOP-UP flow", { orderId, variantId, qty, mayaPlanId, mayaCustomerId });
+        console.log("🧪 Recharge line item properties:", {
+          selectedIccid,
+          properties: item.properties,
+        });
 
         if (!mayaCustomerId) {
           shouldMarkProcessed = false;
