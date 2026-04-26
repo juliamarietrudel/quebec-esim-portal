@@ -1539,6 +1539,61 @@ app.post("/webhooks/order-paid", async (req, res) => {
 //   }
 // });
 
+app.get("/api/test-customer", async (req, res) => {
+  try {
+    const customerId = String(req.query.customer_id || "").trim();
+
+    if (!customerId) {
+      return res.status(400).json({ error: "Missing customer_id" });
+    }
+
+    const mayaCustomerId = await getMayaCustomerIdFromShopifyCustomer(customerId);
+
+    return res.json({
+      ok: true,
+      shopifyCustomerId: customerId,
+      mayaCustomerId: mayaCustomerId || null,
+    });
+  } catch (error) {
+    console.error("❌ /api/test-customer error:", error);
+    return res.status(500).json({
+      ok: false,
+      error: error.message || "Something went wrong",
+    });
+  }
+});
+
+app.get("/api/test-esims", async (req, res) => {
+  try {
+    const customerId = String(req.query.customer_id || "").trim();
+
+    if (!customerId) {
+      return res.status(400).json({ error: "Missing customer_id" });
+    }
+
+    const mayaCustomerId = await getMayaCustomerIdFromShopifyCustomer(customerId);
+
+    if (!mayaCustomerId) {
+      return res.status(404).json({ error: "No Maya customer linked" });
+    }
+
+    const mayaDetails = await getMayaCustomerDetails(mayaCustomerId);
+
+    return res.json({
+      ok: true,
+      shopifyCustomerId: customerId,
+      mayaCustomerId,
+      esims: mayaDetails?.customer?.esims || [],
+    });
+  } catch (error) {
+    console.error("❌ /api/test-esims error:", error);
+    return res.status(500).json({
+      ok: false,
+      error: error.message || "Something went wrong",
+    });
+  }
+});
+
 // -----------------------------
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Listening on ${port}`));
